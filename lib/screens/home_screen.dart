@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/category.dart';
-import '../state/shop_state.dart';
+import '../repositories/product_repository.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/catalog_viewmodel.dart';
+import '../viewmodels/wishlist_viewmodel.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/product_card.dart';
 import '../widgets/promo_banner.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   final VoidCallback onNavigateToExplore;
   final VoidCallback onNavigateToWishlist;
 
@@ -17,10 +20,13 @@ class HomeScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final state = ShopStateScope.of(context);
-    final flashSaleProducts = state.flashSaleProducts;
-    final popularProducts = state.products;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.watch(productRepositoryProvider);
+    final flashSaleProducts = repo.getFlashSaleProducts();
+    final popularProducts = repo.getProducts();
+    final favoriteIds = ref.watch(wishlistViewModelProvider);
+    final selectedCategoryId =
+        ref.watch(catalogViewModelProvider).selectedCategoryId;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -63,7 +69,7 @@ class HomeScreen extends StatelessWidget {
                 icon: const Icon(Icons.favorite_border_rounded),
                 onPressed: onNavigateToWishlist,
               ),
-              if (state.favoriteIds.isNotEmpty)
+              if (favoriteIds.isNotEmpty)
                 Positioned(
                   top: 8,
                   right: 8,
@@ -74,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Text(
-                      '${state.favoriteIds.length}',
+                      '${favoriteIds.length}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 9,
@@ -185,9 +191,11 @@ class HomeScreen extends StatelessWidget {
                     final cat = Category.sampleCategories[index];
                     return CategoryChip(
                       category: cat,
-                      isSelected: state.selectedCategoryId == cat.id,
+                      isSelected: selectedCategoryId == cat.id,
                       onTap: () {
-                        state.selectCategory(cat.id);
+                        ref
+                            .read(catalogViewModelProvider.notifier)
+                            .selectCategory(cat.id);
                         onNavigateToExplore();
                       },
                     );

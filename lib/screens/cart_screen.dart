@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import '../state/shop_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/cart_item.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/cart_viewmodel.dart';
+import '../viewmodels/navigation_viewmodel.dart';
 
-class CartScreen extends StatefulWidget {
+class CartScreen extends ConsumerStatefulWidget {
   final VoidCallback? onBrowseProducts;
 
   const CartScreen({
@@ -11,10 +14,10 @@ class CartScreen extends StatefulWidget {
   });
 
   @override
-  State<CartScreen> createState() => _CartScreenState();
+  ConsumerState<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends ConsumerState<CartScreen> {
   final TextEditingController _promoController = TextEditingController();
   String? _promoError;
 
@@ -26,8 +29,8 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ShopStateScope.of(context);
-    final items = state.cartItems;
+    final cartState = ref.watch(cartViewModelProvider);
+    final items = cartState.items;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -37,12 +40,14 @@ class _CartScreenState extends State<CartScreen> {
           if (items.isNotEmpty)
             TextButton.icon(
               onPressed: () {
-                _showClearCartDialog(context, state);
+                _showClearCartDialog(context);
               },
-              icon: const Icon(Icons.delete_sweep_outlined, size: 20, color: AppTheme.accent),
+              icon: const Icon(Icons.delete_sweep_outlined,
+                  size: 20, color: AppTheme.accent),
               label: const Text(
                 'Clear',
-                style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: AppTheme.accent, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -55,14 +60,15 @@ class _CartScreenState extends State<CartScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: items.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      return _buildCartItemCard(context, state, item, index);
+                      return _buildCartItemCard(context, item, index);
                     },
                   ),
                 ),
-                _buildOrderSummary(context, state),
+                _buildOrderSummary(context, cartState),
               ],
             ),
     );
@@ -77,7 +83,7 @@ class _CartScreenState extends State<CartScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.primaryLight,
                 shape: BoxShape.circle,
               ),
@@ -108,7 +114,13 @@ class _CartScreenState extends State<CartScreen> {
             ),
             const SizedBox(height: 28),
             ElevatedButton.icon(
-              onPressed: widget.onBrowseProducts,
+              onPressed: () {
+                if (widget.onBrowseProducts != null) {
+                  widget.onBrowseProducts!();
+                } else {
+                  ref.read(navigationIndexProvider.notifier).state = 1;
+                }
+              },
               icon: const Icon(Icons.explore_outlined),
               label: const Text('Start Shopping'),
             ),
@@ -120,8 +132,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildCartItemCard(
     BuildContext context,
-    ShopState state,
-    item,
+    CartItem item,
     int index,
   ) {
     return Container(
@@ -173,7 +184,8 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     if (item.selectedSize != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: AppTheme.background,
                           borderRadius: BorderRadius.circular(4),
@@ -181,7 +193,8 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                         child: Text(
                           'Size: ${item.selectedSize}',
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          style: const TextStyle(
+                              fontSize: 11, color: AppTheme.textSecondary),
                         ),
                       ),
                     if (item.selectedColor != null) ...[
@@ -222,7 +235,9 @@ class _CartScreenState extends State<CartScreen> {
                   constraints: const BoxConstraints(),
                   icon: const Icon(Icons.remove),
                   onPressed: () {
-                    state.updateQuantity(index, item.quantity - 1);
+                    ref
+                        .read(cartViewModelProvider.notifier)
+                        .updateQuantity(index, item.quantity - 1);
                   },
                 ),
                 Padding(
@@ -241,7 +256,9 @@ class _CartScreenState extends State<CartScreen> {
                   constraints: const BoxConstraints(),
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    state.updateQuantity(index, item.quantity + 1);
+                    ref
+                        .read(cartViewModelProvider.notifier)
+                        .updateQuantity(index, item.quantity + 1);
                   },
                 ),
               ],
@@ -252,7 +269,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildOrderSummary(BuildContext context, ShopState state) {
+  Widget _buildOrderSummary(BuildContext context, CartState cartState) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -280,30 +297,35 @@ class _CartScreenState extends State<CartScreen> {
                     decoration: InputDecoration(
                       hintText: 'Promo Code (e.g. SHOPPIX20)',
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
                       errorText: _promoError,
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                if (state.appliedPromoCode != null)
+                if (cartState.appliedPromoCode != null)
                   IconButton(
                     onPressed: () {
-                      state.removePromo();
+                      ref.read(cartViewModelProvider.notifier).removePromo();
                       _promoController.clear();
                       setState(() {
                         _promoError = null;
                       });
                     },
-                    icon: const Icon(Icons.close_rounded, color: AppTheme.accent),
+                    icon:
+                        const Icon(Icons.close_rounded, color: AppTheme.accent),
                   )
                 else
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
                     onPressed: () {
-                      final ok = state.applyPromo(_promoController.text);
+                      final ok = ref
+                          .read(cartViewModelProvider.notifier)
+                          .applyPromo(_promoController.text);
                       setState(() {
                         if (ok) {
                           _promoError = null;
@@ -316,15 +338,16 @@ class _CartScreenState extends State<CartScreen> {
                   ),
               ],
             ),
-            if (state.appliedPromoCode != null)
+            if (cartState.appliedPromoCode != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 14),
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppTheme.success, size: 14),
                     const SizedBox(width: 4),
                     Text(
-                      'Code "${state.appliedPromoCode}" applied (${(state.discountPercent * 100).toInt()}% OFF)',
+                      'Code "${cartState.appliedPromoCode}" applied (${(cartState.discountPercent * 100).toInt()}% OFF)',
                       style: const TextStyle(
                         color: AppTheme.success,
                         fontSize: 12,
@@ -340,33 +363,44 @@ class _CartScreenState extends State<CartScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Subtotal', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                Text('\$${state.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                const Text('Subtotal',
+                    style:
+                        TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                Text('\$${cartState.subtotal.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Estimated Shipping', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                const Text('Estimated Shipping',
+                    style:
+                        TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                 Text(
-                  state.shippingFee == 0 ? 'FREE' : '\$${state.shippingFee.toStringAsFixed(2)}',
+                  cartState.shippingFee == 0
+                      ? 'FREE'
+                      : '\$${cartState.shippingFee.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: state.shippingFee == 0 ? AppTheme.success : AppTheme.textPrimary,
+                    color: cartState.shippingFee == 0
+                        ? AppTheme.success
+                        : AppTheme.textPrimary,
                   ),
                 ),
               ],
             ),
-            if (state.discountAmount > 0) ...[
+            if (cartState.discountAmount > 0) ...[
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Promo Discount', style: TextStyle(color: AppTheme.accent, fontSize: 13)),
+                  const Text('Promo Discount',
+                      style: TextStyle(color: AppTheme.accent, fontSize: 13)),
                   Text(
-                    '-\$${state.discountAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.accent),
+                    '-\$${cartState.discountAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, color: AppTheme.accent),
                   ),
                 ],
               ),
@@ -377,11 +411,17 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Text(
                   'Total Amount',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary),
                 ),
                 Text(
-                  '\$${state.total.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.primary),
+                  '\$${cartState.total.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primary),
                 ),
               ],
             ),
@@ -392,16 +432,21 @@ class _CartScreenState extends State<CartScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  _showOrderSuccessDialog(context, state);
+                  _showOrderSuccessDialog(context);
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Checkout Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    const Text('Checkout Now',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(width: 8),
                     Text(
-                      '(\$${state.total.toStringAsFixed(2)})',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white70),
+                      '(\$${cartState.total.toStringAsFixed(2)})',
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white70),
                     ),
                   ],
                 ),
@@ -413,12 +458,13 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  void _showClearCartDialog(BuildContext context, ShopState state) {
+  void _showClearCartDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear Cart?'),
-        content: const Text('Are you sure you want to remove all items from your shopping cart?'),
+        content: const Text(
+            'Are you sure you want to remove all items from your shopping cart?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -427,7 +473,7 @@ class _CartScreenState extends State<CartScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
             onPressed: () {
-              state.clearCart();
+              ref.read(cartViewModelProvider.notifier).clearCart();
               Navigator.of(context).pop();
             },
             child: const Text('Clear All'),
@@ -437,7 +483,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  void _showOrderSuccessDialog(BuildContext context, ShopState state) {
+  void _showOrderSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -484,11 +530,15 @@ class _CartScreenState extends State<CartScreen> {
                 color: AppTheme.background,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Payment Status:', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                  const Text('Paid with Card (••• 4242)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('Payment Status:',
+                      style: TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                  Text('Paid with Card (••• 4242)',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -499,9 +549,13 @@ class _CartScreenState extends State<CartScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                state.clearCart();
+                ref.read(cartViewModelProvider.notifier).clearCart();
                 Navigator.of(context).pop();
-                widget.onBrowseProducts?.call();
+                if (widget.onBrowseProducts != null) {
+                  widget.onBrowseProducts!();
+                } else {
+                  ref.read(navigationIndexProvider.notifier).state = 1;
+                }
               },
               child: const Text('Continue Shopping'),
             ),

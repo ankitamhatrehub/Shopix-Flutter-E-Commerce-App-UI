@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product.dart';
-import '../state/shop_state.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/cart_viewmodel.dart';
+import '../viewmodels/navigation_viewmodel.dart';
+import '../viewmodels/wishlist_viewmodel.dart';
 
-class ProductDetailScreen extends StatefulWidget {
+class ProductDetailScreen extends ConsumerStatefulWidget {
   final Product product;
 
   const ProductDetailScreen({
@@ -12,10 +15,11 @@ class ProductDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+  ConsumerState<ProductDetailScreen> createState() =>
+      _ProductDetailScreenState();
 }
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
+class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   late Color _selectedColor;
   late String _selectedSize;
   int _quantity = 1;
@@ -33,8 +37,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ShopStateScope.of(context);
-    final isFav = state.isFavorite(widget.product.id);
+    final isFav =
+        ref.watch(wishlistViewModelProvider).contains(widget.product.id);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -71,7 +75,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       color: isFav ? AppTheme.accent : AppTheme.textPrimary,
                     ),
                     onPressed: () {
-                      state.toggleFavorite(widget.product.id);
+                      ref
+                          .read(wishlistViewModelProvider.notifier)
+                          .toggleFavorite(widget.product.id);
                     },
                   ),
                 ),
@@ -523,12 +529,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   onPressed: () {
-                    state.addToCart(
-                      widget.product,
-                      color: _selectedColor,
-                      size: _selectedSize,
-                      quantity: _quantity,
-                    );
+                    ref.read(cartViewModelProvider.notifier).addToCart(
+                          widget.product,
+                          color: _selectedColor,
+                          size: _selectedSize,
+                          quantity: _quantity,
+                        );
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -569,12 +575,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   onPressed: () {
-                    state.addToCart(
-                      widget.product,
-                      color: _selectedColor,
-                      size: _selectedSize,
-                      quantity: _quantity,
-                    );
+                    ref.read(cartViewModelProvider.notifier).addToCart(
+                          widget.product,
+                          color: _selectedColor,
+                          size: _selectedSize,
+                          quantity: _quantity,
+                        );
                     _showCheckoutDialog(context);
                   },
                   child: const Text(
@@ -639,6 +645,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
             ElevatedButton(
               onPressed: () {
+                ref.read(navigationIndexProvider.notifier).state = 2;
                 Navigator.of(context).pop();
                 Navigator.of(context).pop(); // back to main
               },

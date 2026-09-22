@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/category.dart';
-import '../models/product.dart';
-import '../state/shop_state.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/catalog_viewmodel.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/product_card.dart';
 
-enum SortOption {
-  featured,
-  priceLowToHigh,
-  priceHighToLow,
-  topRated,
-}
-
-class ExploreScreen extends StatefulWidget {
+class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
   @override
-  State<ExploreScreen> createState() => _ExploreScreenState();
+  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
-  SortOption _currentSort = SortOption.featured;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialQuery = ref.read(catalogViewModelProvider).searchQuery;
+    if (initialQuery.isNotEmpty) {
+      _searchController.text = initialQuery;
+    }
+  }
 
   @override
   void dispose() {
@@ -30,28 +31,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.dispose();
   }
 
-  List<Product> _getSortedProducts(List<Product> products) {
-    final list = List<Product>.from(products);
-    switch (_currentSort) {
-      case SortOption.featured:
-        return list;
-      case SortOption.priceLowToHigh:
-        list.sort((a, b) => a.price.compareTo(b.price));
-        return list;
-      case SortOption.priceHighToLow:
-        list.sort((a, b) => b.price.compareTo(a.price));
-        return list;
-      case SortOption.topRated:
-        list.sort((a, b) => b.rating.compareTo(a.rating));
-        return list;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final state = ShopStateScope.of(context);
-    final filtered = state.filteredProducts;
-    final sortedProducts = _getSortedProducts(filtered);
+    final catalogState = ref.watch(catalogViewModelProvider);
+    final sortedProducts = ref.watch(filteredProductsProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -69,7 +52,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (val) => state.setSearchQuery(val),
+                    onChanged: (val) {
+                      ref.read(catalogViewModelProvider.notifier).setSearchQuery(val);
+                    },
                     decoration: InputDecoration(
                       hintText: 'Search shoes, tech, fashion...',
                       prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
@@ -78,7 +63,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               icon: const Icon(Icons.clear_rounded, size: 18),
                               onPressed: () {
                                 _searchController.clear();
-                                state.setSearchQuery('');
+                                ref.read(catalogViewModelProvider.notifier).setSearchQuery('');
                               },
                             )
                           : null,
@@ -100,9 +85,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     child: const Icon(Icons.sort_rounded, size: 20, color: AppTheme.textPrimary),
                   ),
                   onSelected: (sort) {
-                    setState(() {
-                      _currentSort = sort;
-                    });
+                    ref.read(catalogViewModelProvider.notifier).setSortOption(sort);
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(
@@ -142,8 +125,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   final cat = Category.sampleCategories[index];
                   return CategoryChip(
                     category: cat,
-                    isSelected: state.selectedCategoryId == cat.id,
-                    onTap: () => state.selectCategory(cat.id),
+                    isSelected: catalogState.selectedCategoryId == cat.id,
+                    onTap: () {
+                      ref.read(catalogViewModelProvider.notifier).selectCategory(cat.id);
+                    },
                   );
                 },
               ),
@@ -166,7 +151,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                 ),
                 Text(
-                  _getSortLabel(_currentSort),
+                  _getSortLabel(catalogState.sortOption),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -181,7 +166,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           Expanded(
             child: sortedProducts.isEmpty
                 ? Center(
-                    child: Padding(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.all(32.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -210,8 +195,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           OutlinedButton(
                             onPressed: () {
                               _searchController.clear();
-                              state.setSearchQuery('');
-                              state.selectCategory('all');
+                              ref.read(catalogViewModelProvider.notifier).resetFilters();
                             },
                             child: const Text('Reset Filters'),
                           ),

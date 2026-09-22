@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shoppix_frontend/main.dart';
 
 void main() {
-  testWidgets('Shoppix App renders home screen and navigation tabs', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const ShoppixApp());
+  testWidgets('Shoppix App renders home screen and navigation tabs',
+      (WidgetTester tester) async {
+    // Build our app wrapped in ProviderScope and trigger a frame.
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: ShoppixApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // Verify navigation tabs exist

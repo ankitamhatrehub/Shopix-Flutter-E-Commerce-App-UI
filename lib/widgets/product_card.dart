@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product.dart';
-import '../state/shop_state.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/cart_viewmodel.dart';
+import '../viewmodels/wishlist_viewmodel.dart';
 import '../screens/product_detail_screen.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends ConsumerWidget {
   final Product product;
   final double? width;
 
@@ -15,9 +17,8 @@ class ProductCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final state = ShopStateScope.of(context);
-    final isFav = state.isFavorite(product.id);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFav = ref.watch(wishlistViewModelProvider).contains(product.id);
 
     return Container(
       width: width,
@@ -125,7 +126,9 @@ class ProductCard extends StatelessWidget {
                       child: InkWell(
                         customBorder: const CircleBorder(),
                         onTap: () {
-                          state.toggleFavorite(product.id);
+                          ref
+                              .read(wishlistViewModelProvider.notifier)
+                              .toggleFavorite(product.id);
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(6.0),
@@ -244,7 +247,9 @@ class ProductCard extends StatelessWidget {
                                 color: Colors.white,
                               ),
                               onPressed: () {
-                                state.addToCart(product);
+                                ref
+                                    .read(cartViewModelProvider.notifier)
+                                    .addToCart(product);
                                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

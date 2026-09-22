@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../state/shop_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/navigation_viewmodel.dart';
+import '../viewmodels/wishlist_viewmodel.dart';
 import '../widgets/product_card.dart';
 
-class WishlistScreen extends StatelessWidget {
+class WishlistScreen extends ConsumerWidget {
   final VoidCallback? onBrowseProducts;
 
   const WishlistScreen({
@@ -12,9 +14,8 @@ class WishlistScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final state = ShopStateScope.of(context);
-    final favorites = state.favoriteProducts;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final favorites = ref.watch(favoriteProductsProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -76,7 +77,13 @@ class WishlistScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 28),
                     ElevatedButton.icon(
-                      onPressed: onBrowseProducts,
+                      onPressed: () {
+                        if (onBrowseProducts != null) {
+                          onBrowseProducts!();
+                        } else {
+                          ref.read(navigationIndexProvider.notifier).state = 1;
+                        }
+                      },
                       icon: const Icon(Icons.explore_outlined),
                       label: const Text('Explore Trending'),
                     ),
@@ -89,7 +96,7 @@ class WishlistScreen extends StatelessWidget {
               itemCount: favorites.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.58,
+                childAspectRatio: 0.60,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
               ),
