@@ -4,6 +4,7 @@ import '../models/cart_item.dart';
 import '../theme/app_theme.dart';
 import '../viewmodels/cart_viewmodel.dart';
 import '../viewmodels/navigation_viewmodel.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   final VoidCallback? onBrowseProducts;

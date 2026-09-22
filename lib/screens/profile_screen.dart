@@ -1,21 +1,117 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
+import '../viewmodels/auth_viewmodel.dart';
+import 'auth/login_screen.dart';
+import 'my_orders_screen.dart';
+import 'notifications_screen.dart';
+import 'payment_methods_screen.dart';
+import 'shipping_addresses_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
+  void _showImagePickerSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Update Profile Photo',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded,
+                        color: AppTheme.primary),
+                  ),
+                  title: const Text('Take Photo with Camera',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    final success = await ref
+                        .read(authViewModelProvider.notifier)
+                        .pickAndUploadAvatar(ImageSource.camera);
+                    if (success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profile photo updated successfully!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.photo_library_rounded,
+                        color: AppTheme.primary),
+                  ),
+                  title: const Text('Choose from Gallery',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    final success = await ref
+                        .read(authViewModelProvider.notifier)
+                        .pickAndUploadAvatar(ImageSource.gallery);
+                    if (success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profile photo updated successfully!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authViewModelProvider);
+    final user = authState.user;
+    final isAuth = authState.isAuthenticated;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('My Account'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.notifications_none_rounded),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings opened')),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
               );
             },
           ),
@@ -42,82 +138,120 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Stack(
-                    children: [
-                      const CircleAvatar(
-                        radius: 34,
-                        backgroundColor: AppTheme.primaryLight,
-                        child: Text(
-                          'AS',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary,
+                  GestureDetector(
+                    onTap: () => _showImagePickerSheet(context, ref),
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 34,
+                          backgroundColor: AppTheme.primaryLight,
+                          backgroundImage: (user?.avatarPath != null &&
+                                  File(user!.avatarPath!).existsSync())
+                              ? FileImage(File(user.avatarPath!))
+                              : null,
+                          child: (user?.avatarPath == null ||
+                                  !File(user!.avatarPath!).existsSync())
+                              ? Text(
+                                  user != null && user.name.isNotEmpty
+                                      ? user.name
+                                          .split(' ')
+                                          .map((e) => e.isNotEmpty ? e[0] : '')
+                                          .take(2)
+                                          .join()
+                                          .toUpperCase()
+                                      : 'SP',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.primary,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: AppTheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 13,
+                            ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 12,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Ankita Shelke',
-                          style: TextStyle(
+                        Text(
+                          isAuth ? (user?.name ?? 'Shopper') : 'Guest User',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: AppTheme.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'ankita.shelke@example.com',
-                          style: TextStyle(
+                        Text(
+                          isAuth
+                              ? (user?.email ?? 'user@shoppix.com')
+                              : 'Sign in to sync your cart & orders',
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppTheme.ratingStar.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.workspace_premium_rounded, size: 14, color: AppTheme.ratingStar),
-                              SizedBox(width: 4),
-                              Text(
-                                'Gold Member • 450 Pts',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimary,
+                        if (isAuth)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.ratingStar.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.workspace_premium_rounded,
+                                    size: 14, color: AppTheme.ratingStar),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${user?.membershipTier ?? "Gold Member"} • ${user?.points ?? 450} Pts',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textPrimary,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          )
+                        else
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 6),
+                              textStyle: const TextStyle(fontSize: 12),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text('Sign In'),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -149,7 +283,11 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       GestureDetector(
                         onTap: () {
-                          _showInfoSnackbar(context, 'Order history clicked');
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const MyOrdersScreen(),
+                            ),
+                          );
                         },
                         child: const Row(
                           children: [
@@ -161,7 +299,8 @@ class ProfileScreen extends StatelessWidget {
                                 color: AppTheme.primary,
                               ),
                             ),
-                            Icon(Icons.chevron_right, size: 16, color: AppTheme.primary),
+                            Icon(Icons.chevron_right,
+                                size: 16, color: AppTheme.primary),
                           ],
                         ),
                       ),
@@ -175,25 +314,49 @@ class ProfileScreen extends StatelessWidget {
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'To Pay',
                         badge: '1',
-                        onTap: () => _showInfoSnackbar(context, 'Orders to pay'),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const MyOrdersScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildOrderStatusItem(
                         icon: Icons.inventory_2_outlined,
                         label: 'To Ship',
                         badge: '2',
-                        onTap: () => _showInfoSnackbar(context, 'Orders processing'),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const MyOrdersScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildOrderStatusItem(
                         icon: Icons.local_shipping_outlined,
                         label: 'To Receive',
                         badge: '1',
-                        onTap: () => _showInfoSnackbar(context, 'Orders in transit'),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const MyOrdersScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildOrderStatusItem(
                         icon: Icons.rate_review_outlined,
                         label: 'Reviews',
                         badge: null,
-                        onTap: () => _showInfoSnackbar(context, 'Reviews awaiting'),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const MyOrdersScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -214,65 +377,111 @@ class ProfileScreen extends StatelessWidget {
                   _buildMenuItem(
                     icon: Icons.location_on_outlined,
                     title: 'Shipping Addresses',
-                    subtitle: '3 saved locations',
-                    onTap: () => _showInfoSnackbar(context, 'Shipping Addresses'),
+                    subtitle: 'Manage delivery locations',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ShippingAddressesScreen(),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(height: 1, indent: 56, color: AppTheme.border),
                   _buildMenuItem(
                     icon: Icons.credit_card_outlined,
                     title: 'Payment Methods',
-                    subtitle: 'Mastercard ••• 4242',
-                    onTap: () => _showInfoSnackbar(context, 'Payment Methods'),
+                    subtitle: 'Manage saved credit/debit cards',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const PaymentMethodsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(height: 1, indent: 56, color: AppTheme.border),
                   _buildMenuItem(
                     icon: Icons.notifications_none_rounded,
                     title: 'Notifications & Alerts',
-                    subtitle: 'Promos, updates, shipping',
-                    onTap: () => _showInfoSnackbar(context, 'Notification settings'),
+                    subtitle: 'Order updates and promotional offers',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(height: 1, indent: 56, color: AppTheme.border),
                   _buildMenuItem(
                     icon: Icons.security_outlined,
                     title: 'Security & Privacy',
-                    subtitle: 'Password, biometric login',
-                    onTap: () => _showInfoSnackbar(context, 'Security settings'),
+                    subtitle: 'Password, biometric & account protection',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Security settings updated')),
+                      );
+                    },
                   ),
                   const Divider(height: 1, indent: 56, color: AppTheme.border),
                   _buildMenuItem(
                     icon: Icons.headset_mic_outlined,
                     title: 'Help Center & Support',
-                    subtitle: '24/7 customer care chat',
-                    onTap: () => _showInfoSnackbar(context, 'Customer Support'),
+                    subtitle: '24/7 customer care chat & FAQs',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Support chat connected')),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Logout Button
+            // Log In / Log Out Action
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: AppTheme.accent),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  _showLogoutDialog(context);
-                },
-                icon: const Icon(Icons.logout_rounded, color: AppTheme.accent),
-                label: const Text(
-                  'Log Out',
-                  style: TextStyle(
-                    color: AppTheme.accent,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              child: isAuth
+                  ? OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppTheme.accent),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        _showLogoutDialog(context, ref);
+                      },
+                      icon: const Icon(Icons.logout_rounded,
+                          color: AppTheme.accent),
+                      label: const Text(
+                        'Log Out',
+                        style: TextStyle(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.login_rounded),
+                      label: const Text(
+                        'Sign In / Register',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -371,22 +580,12 @@ class ProfileScreen extends StatelessWidget {
           color: AppTheme.textSecondary,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, size: 20, color: AppTheme.textSecondary),
+      trailing: const Icon(Icons.chevron_right,
+          size: 20, color: AppTheme.textSecondary),
     );
   }
 
-  void _showInfoSnackbar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -400,8 +599,14 @@ class ProfileScreen extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
             onPressed: () {
+              ref.read(authViewModelProvider.notifier).logout();
               Navigator.of(context).pop();
-              _showInfoSnackbar(context, 'Successfully logged out');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Successfully signed out'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
             },
             child: const Text('Log Out'),
           ),

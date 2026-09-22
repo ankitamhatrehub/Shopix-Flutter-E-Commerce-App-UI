@@ -4,10 +4,12 @@ import '../models/category.dart';
 import '../repositories/product_repository.dart';
 import '../theme/app_theme.dart';
 import '../viewmodels/catalog_viewmodel.dart';
+import '../viewmodels/notification_viewmodel.dart';
 import '../viewmodels/wishlist_viewmodel.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/product_card.dart';
 import '../widgets/promo_banner.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   final VoidCallback onNavigateToExplore;
@@ -92,13 +94,39 @@ class HomeScreen extends ConsumerWidget {
             ],
           ),
           // Notifications
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No new notifications')),
-              );
-            },
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                },
+              ),
+              if (ref.watch(unreadNotificationsCountProvider) > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${ref.watch(unreadNotificationsCountProvider)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
