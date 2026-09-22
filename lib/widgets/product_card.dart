@@ -6,7 +6,7 @@ import '../viewmodels/cart_viewmodel.dart';
 import '../viewmodels/wishlist_viewmodel.dart';
 import '../screens/product_detail_screen.dart';
 
-class ProductCard extends ConsumerWidget {
+class ProductCard extends ConsumerStatefulWidget {
   final Product product;
   final double? width;
 
@@ -17,57 +17,90 @@ class ProductCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isFav = ref.watch(wishlistViewModelProvider).contains(product.id);
+  ConsumerState<ProductCard> createState() => _ProductCardState();
+}
 
-    return Container(
-      width: width,
+class _ProductCardState extends ConsumerState<ProductCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFav =
+        ref.watch(wishlistViewModelProvider).contains(widget.product.id);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: widget.width,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.001)
+        ..scale(_isHovered ? 1.02 : 1.0)
+        ..translate(0.0, _isHovered ? -4.0 : 0.0),
       decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: _isHovered
+              ? AppTheme.primary.withOpacity(0.5)
+              : AppTheme.border.withOpacity(0.8),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: AppTheme.primary.withOpacity(_isHovered ? 0.12 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(22),
+          onTapDown: (_) => setState(() => _isHovered = true),
+          onTapUp: (_) => setState(() => _isHovered = false),
+          onTapCancel: () => setState(() => _isHovered = false),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(product: product),
+                builder: (context) =>
+                    ProductDetailScreen(product: widget.product),
               ),
             );
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image container with tag & favorite button
+              // 3D Elevated Image Thumbnail
               Stack(
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(15),
+                      top: Radius.circular(21),
                     ),
                     child: Container(
                       height: 140,
                       width: double.infinity,
-                      color: const Color(0xFFF1F5F9),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFF8FAFC), Color(0xFFEDF2F7)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
                       child: Image.network(
-                        product.imageUrl,
+                        widget.product.imageUrl,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return const Center(
                             child: SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: AppTheme.primary,
@@ -90,54 +123,81 @@ class ProductCard extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  // Tag Badge
-                  if (product.tag != null)
+
+                  // Floating 3D Tag Badge
+                  if (widget.product.tag != null)
                     Positioned(
                       top: 10,
                       left: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
+                          horizontal: 9,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: product.tag!.contains('Sale')
-                              ? AppTheme.accent
-                              : AppTheme.primary,
-                          borderRadius: BorderRadius.circular(6),
+                          gradient: widget.product.tag!.contains('Sale')
+                              ? AppTheme.accentGradient
+                              : AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (widget.product.tag!.contains('Sale')
+                                      ? AppTheme.accent
+                                      : AppTheme.primary)
+                                  .withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
                         child: Text(
-                          product.tag!,
+                          widget.product.tag!,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
                           ),
                         ),
                       ),
                     ),
-                  // Favorite Button
+
+                  // Floating 3D Favorite Button
                   Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Material(
-                      color: Colors.white.withOpacity(0.9),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () {
-                          ref
-                              .read(wishlistViewModelProvider.notifier)
-                              .toggleFavorite(product.id);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(6.0),
-                          child: Icon(
-                            isFav
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            size: 18,
-                            color: isFav ? AppTheme.accent : AppTheme.textSecondary,
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.white.withOpacity(0.92),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () {
+                            ref
+                                .read(wishlistViewModelProvider.notifier)
+                                .toggleFavorite(widget.product.id);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(7.0),
+                            child: Icon(
+                              isFav
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              size: 18,
+                              color: isFav
+                                  ? AppTheme.accent
+                                  : AppTheme.textSecondary,
+                            ),
                           ),
                         ),
                       ),
@@ -145,6 +205,7 @@ class ProductCard extends ConsumerWidget {
                   ),
                 ],
               ),
+
               // Content details
               Expanded(
                 child: Padding(
@@ -154,74 +215,76 @@ class ProductCard extends ConsumerWidget {
                     children: [
                       // Category
                       Text(
-                        product.category.toUpperCase(),
+                        widget.product.category.toUpperCase(),
                         style: const TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
-                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primary,
+                          letterSpacing: 0.8,
                         ),
                       ),
                       const SizedBox(height: 4),
+
                       // Title
                       Text(
-                        product.title,
+                        widget.product.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           color: AppTheme.textPrimary,
-                          height: 1.2,
+                          height: 1.25,
                         ),
                       ),
                       const Spacer(),
+
                       // Rating
-                      Row(
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: AppTheme.ratingStar,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            product.rating.toString(),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '(${product.reviewsCount})',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      // Price and Add button
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
+                          Column(
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 15,
+                                    color: AppTheme.ratingStar,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    widget.product.rating.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '(${widget.product.reviewsCount})',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            
+                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
+                                  '\$${widget.product.price.toStringAsFixed(2)}',
                                   style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
                                     color: AppTheme.textPrimary,
                                   ),
                                 ),
-                                if (product.oldPrice != null)
+                                if (widget.product.oldPrice != null)
                                   Text(
-                                    '\$${product.oldPrice!.toStringAsFixed(2)}',
+                                    '\$${widget.product.oldPrice!.toStringAsFixed(2)}',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: AppTheme.textSecondary,
@@ -230,17 +293,24 @@ class ProductCard extends ConsumerWidget {
                                   ),
                               ],
                             ),
+                            ],
                           ),
-                          // Quick Add to Cart
-                          Container(
+                           Container(
                             height: 32,
                             width: 32,
                             decoration: BoxDecoration(
-                              color: AppTheme.primary,
-                              borderRadius: BorderRadius.circular(8),
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primary.withOpacity(0.4),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: IconButton(
-                              iconSize: 18,
+                              iconSize: 20,
                               padding: EdgeInsets.zero,
                               icon: const Icon(
                                 Icons.add_rounded,
@@ -249,18 +319,15 @@ class ProductCard extends ConsumerWidget {
                               onPressed: () {
                                 ref
                                     .read(cartViewModelProvider.notifier)
-                                    .addToCart(product);
-                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                    .addToCart(widget.product);
+                                ScaffoldMessenger.of(context)
+                                    .hideCurrentSnackBar();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('${product.title} added to cart!'),
+                                    content: Text(
+                                        '${widget.product.title} added to cart!'),
                                     duration: const Duration(seconds: 2),
                                     behavior: SnackBarBehavior.floating,
-                                    action: SnackBarAction(
-                                      label: 'OK',
-                                      textColor: Colors.amberAccent,
-                                      onPressed: () {},
-                                    ),
                                   ),
                                 );
                               },
@@ -268,6 +335,10 @@ class ProductCard extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 6),
+
+                      // Price and 3D Floating Add button
+                      
                     ],
                   ),
                 ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'screens/main_navigation_screen.dart';
+import 'screens/splash_onboarding_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -21,7 +21,7 @@ class ShoppixApp extends StatelessWidget {
       title: 'Shoppix',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const MainNavigationScreen(),
+      home: const SplashOnboardingScreen(),
     );
   }
 }

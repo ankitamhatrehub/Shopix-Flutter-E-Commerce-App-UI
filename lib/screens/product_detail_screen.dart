@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../viewmodels/cart_viewmodel.dart';
 import '../viewmodels/navigation_viewmodel.dart';
 import '../viewmodels/wishlist_viewmodel.dart';
+import 'checkout_screen.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final Product product;
@@ -581,7 +582,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           size: _selectedSize,
                           quantity: _quantity,
                         );
-                    _showCheckoutDialog(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const CheckoutScreen(),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Buy Now',
@@ -597,63 +602,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  void _showCheckoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.check_circle_outline_rounded,
-                color: AppTheme.success,
-                size: 64,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Ready to Checkout?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Total: \$${(widget.product.price * _quantity).toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Would you like to complete this order or view your shopping cart?',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Keep Shopping'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(navigationIndexProvider.notifier).state = 2;
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // back to main
-              },
-              child: const Text('Go to Cart'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

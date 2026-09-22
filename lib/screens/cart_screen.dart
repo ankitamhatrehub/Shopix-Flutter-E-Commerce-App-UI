@@ -140,7 +140,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.border.withOpacity(0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -397,7 +404,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Promo Discount',
-                      style: TextStyle(color: AppTheme.accent, fontSize: 13)),
+                       style: TextStyle(color: AppTheme.accent, fontSize: 13)),
                   Text(
                     '-\$${cartState.discountAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
@@ -428,12 +435,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Checkout Button
+            // Checkout Button -> Goes directly to 3D Checkout Screen
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  _showOrderSuccessDialog(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const CheckoutScreen(),
+                    ),
+                  );
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -478,88 +489,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               Navigator.of(context).pop();
             },
             child: const Text('Clear All'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showOrderSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.success.withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle_rounded,
-                color: AppTheme.success,
-                size: 64,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Order Placed!',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Thank you for your purchase with Shoppix.\nYour order #SPX-8921 is confirmed and will be delivered soon.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.background,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Payment Status:',
-                      style: TextStyle(
-                          fontSize: 12, color: AppTheme.textSecondary)),
-                  Text('Paid with Card (••• 4242)',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                ref.read(cartViewModelProvider.notifier).clearCart();
-                Navigator.of(context).pop();
-                if (widget.onBrowseProducts != null) {
-                  widget.onBrowseProducts!();
-                } else {
-                  ref.read(navigationIndexProvider.notifier).state = 1;
-                }
-              },
-              child: const Text('Continue Shopping'),
-            ),
           ),
         ],
       ),
